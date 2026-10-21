@@ -1,5 +1,22 @@
 #!/bin/bash
 
+# 确保以 root 权限运行
+if [ "$EUID" -ne 0 ]; then
+  echo "❌ 请使用 root 权限运行此脚本！(例如: sudo bash ...)"
+  exit 1
+fi
+
+echo "==> 0. 检查并自动安装 sing-box 核心..."
+if ! command -v sing-box &> /dev/null; then
+    echo "检测到系统未安装 sing-box，正在自动安装..."
+    # 自动识别系统架构并安装官方 sing-box
+    apt-get update -y && apt-get install -y curl wget jq
+    bash <(curl -fsSL https://sing-box.app/deb-install.sh)
+    echo "✅ sing-box 安装完成！"
+else
+    echo "✅ 检测到 sing-box 已存在，跳过安装。"
+fi
+
 echo "==> 1. 清理并停止旧服务..."
 systemctl stop sing-box 2>/dev/null
 
@@ -215,6 +232,7 @@ CONFIG
 openssl req -x509 -nodes -newkey rsa:2048 -keyout /etc/sing-box/hy2.key -out /etc/sing-box/hy2.crt -days 3650 -subj "/CN=bing.com" 2>/dev/null
 
 echo "==> 4. 重启服务..."
+systemctl enable sing-box
 systemctl restart sing-box
 
 # 链接拼接
